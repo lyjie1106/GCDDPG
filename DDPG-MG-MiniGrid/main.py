@@ -6,13 +6,16 @@ import torch
 import matplotlib.pyplot as plt
 from agent import Agent
 import numpy as np
-import mujoco_py
+#import mujoco_py
+import gym_simple_minigrid
+from env.ModifiedFourRoomEnv import ModifiedFourRoomEnv
+
 from gym import envs
 from copy import deepcopy
 from mpi4py import MPI
 import random
 
-ENV_NAME = 'FetchSlide-v1'
+ENV_NAME = 'ModifiedFourRoomEnv-v0'
 MAX_EPOCHS = 50
 MAX_CYCLES = 50
 MAX_EPISODES = 2
@@ -33,7 +36,7 @@ def eval(env,agent):
         ep_success_rate = []
         # reset ENV
         achieved_goal, desired_goal = 0, 0
-        while np.linalg.norm(achieved_goal - desired_goal) <= 0.05:
+        while np.array_equal(achieved_goal, desired_goal):
             env_dict = env.reset()
             state = env_dict['observation']
             achieved_goal = env_dict['achieved_goal']
@@ -41,8 +44,8 @@ def eval(env,agent):
         ep_reward = 0
         for t in range(50):
             with torch.no_grad():
-                action = agent.choose_action(state,desired_goal,train_mode=False)
-            next_env_dict, reward, done, info = env.step(action)
+                actions,action_dicrete = agent.choose_action(state,desired_goal,train_mode=False)
+            next_env_dict, reward, done, info = env.step(action_dicrete)
             state = next_env_dict['observation'].copy()
             desired_goal = next_env_dict['desired_goal'].copy()
             ep_success_rate.append(info['is_success'])
@@ -70,10 +73,12 @@ def launch():
     torch.manual_seed(MPI.COMM_WORLD.Get_rank())
 
     n_state = env.observation_space.spaces['observation'].shape
-    n_action = env.action_space.shape[0]
+    n_action = 1
+    actions_num = 3
     n_goal = env.observation_space.spaces['desired_goal'].shape[0]
-    bound_action = [env.action_space.low[0], env.action_space.high[0]]
-    agent = Agent(n_state, n_action, n_goal, bound_action, deepcopy(env))
+    #bound_action = [0,1,2]
+
+    agent = Agent(n_state, n_action, n_goal, actions_num, deepcopy(env))
     # record loss in each epoch
     global_actor_loss = []
     global_critic_loss = []
@@ -100,23 +105,23 @@ def launch():
                 }
                 # reset ENV
                 achieved_goal, desired_goal = 0, 0
-                while np.linalg.norm(achieved_goal - desired_goal) <= 0.05:
+                while np.array_equal(achieved_goal,desired_goal):
                     env_dict = env.reset()
                     state = env_dict['observation']
                     achieved_goal = env_dict['achieved_goal']
                     desired_goal = env_dict['desired_goal']
                 # take action
                 for t in range(50):
-                    action = agent.choose_action(state, desired_goal)
+                    actions,action_dicrete = agent.choose_action(state, desired_goal)
 
-                    next_env_dict, reward, done, info = env.step(action)
+                    next_env_dict, reward, done, info = env.step(env.actions(action_dicrete))
 
                     next_state = next_env_dict["observation"]
                     next_achieved_goal = next_env_dict["achieved_goal"]
                     next_desired_goal = next_env_dict["desired_goal"]
 
                     episode_dict['state'].append(state.copy())
-                    episode_dict['action'].append(action.copy())
+                    episode_dict['action'].append(actions.copy())
                     # episode_dict['info'].append(info.copy())
                     episode_dict['achieved_goal'].append(achieved_goal.copy())
                     episode_dict['desired_goal'].append(desired_goal.copy())

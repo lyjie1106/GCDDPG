@@ -85,12 +85,13 @@ class ModifiedFourRoomEnv(ModifiedMiniGridEnv):
         }
 
     def step(self, action):
-        print(0)
         self.step_count += 1
 
         reward = -1
         done = False
         info = {}
+        info['is_success'] = False
+        info['TimeLimit.truncated'] = False
 
         if action == self.actions.left:
             self.agent_dir = (self.agent_dir - 1) % 4
@@ -108,12 +109,14 @@ class ModifiedFourRoomEnv(ModifiedMiniGridEnv):
             info['TimeLimit.truncated'] = True
         if np.array_equal(self.agent_pos,self.goal_pos):
             done = True
+            info['is_success'] = True
             reward = 0
         return self._get_obs(),reward,done,info
 
     def compute_reward(self,achieved_goal, goal, info):
-        reward = -1
-        if np.array_equal(achieved_goal,goal):
-            reward = 0
-        return reward
+        d = self.goal_distance(achieved_goal,goal)
+        return -(d!=0).astype(np.float32)
 
+    def goal_distance(self,goal_a, goal_b):
+        assert goal_a.shape == goal_b.shape
+        return np.linalg.norm(goal_a - goal_b, axis=-1)

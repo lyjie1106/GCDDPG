@@ -23,22 +23,24 @@ k_future = 4
 
 
 class Agent:
-    def __init__(self,n_state,n_action,n_goal,bound_action, env):
+    def __init__(self,n_state,n_action,n_goal,actions_num, env):
         self.n_state = n_state
         self.n_action = n_action
+        self.actions_discrete_num = actions_num
+
         self.n_goal = n_goal
-        self.bound_action = bound_action
+        #self.bound_action = bound_action
         self.env = env
 
         self.device = device('cuda' if torch.cuda.is_available() else 'cpu')
         #self.device = device('cpu')
 
-        self.actor = Actor(self.n_state,self.n_action,self.n_goal).to(self.device)
-        self.critic = Critic(self.n_state,self.n_action,self.n_goal).to(self.device)
+        self.actor = Actor(self.n_state,self.actions_discrete_num,self.n_goal).to(self.device)
+        self.critic = Critic(self.n_state,self.actions_discrete_num,self.n_goal).to(self.device)
         self.sync_network(self.actor)
         self.sync_network(self.critic)
-        self.actor_target = Actor(self.n_state,self.n_action,self.n_goal).to(self.device)
-        self.critic_target = Critic(self.n_state, self.n_action, self.n_goal).to(self.device)
+        self.actor_target = Actor(self.n_state,self.actions_discrete_num,self.n_goal).to(self.device)
+        self.critic_target = Critic(self.n_state, self.actions_discrete_num, self.n_goal).to(self.device)
         self.hard_update_network(self.actor,self.actor_target)
         self.hard_update_network(self.critic,self.critic_target)
 
@@ -62,7 +64,12 @@ class Agent:
         with torch.no_grad():
             x = np.concatenate([state,goal],axis=1)
             x = from_numpy(x).float().to(self.device)
-            action = self.actor(x)[0].cpu().data.numpy()
+            actions = self.actor(x)[0]
+
+        m = torch.nn.Softmax(dim=0)
+        actions_prob = m(actions).cpu().data.numpy()
+        action_dicrete = np.argmax(actions_prob)
+        '''
         if train_mode:
             # add Gaussian noise
             #action = np.clip(np.random.normal(action,VAR),self.bound_action[0],self.bound_action[1])
@@ -70,7 +77,9 @@ class Agent:
             action = np.clip(action,self.bound_action[0],self.bound_action[1])
             random_action = np.random.uniform(low=self.bound_action[0],high=self.bound_action[1],size = self.n_action)
             action += np.random.binomial(1,0.3,1)[0]*(random_action-action)
-        return action
+        '''
+
+        return actions_prob,action_dicrete
 
     # store minibatch into memory
     def store(self,minibatch):
@@ -94,16 +103,17 @@ class Agent:
         rewards = torch.Tensor(rewards).to(self.device)
         actions = torch.Tensor(actions).to(self.device)
 
-
-
         # calculate critic loss
         with torch.no_grad():
-            target_action = self.actor_target(next_states_goals)
-            target_q = self.critic_target(next_states_goals,target_action)
-            #target_q = target_q.detach()
-            #target_return = rewards + GAMMA * target_q.detach()*(-rewards)
+            #target_action = self.actor_target(next_states_goals)
+
+            actions= self.actor_target(next_states_goals)
+
+            #target_action = np.argmax(actions_softmax,axis=1).reshape(-1, 1)
+            #target_action = torch.Tensor(target_action).to(self.device)
+            target_q = self.critic_target(next_states_goals,actions)
+
             target_return = rewards + GAMMA * target_q.detach()
-            #target_return = target_return.detach()
             # clip the return, due to the reward in env is non-positive
             clip_return = 1 / (1 - GAMMA)
             target_return = torch.clamp(target_return,-clip_return,0)
@@ -112,9 +122,11 @@ class Agent:
 
         # calculate actor loss
         new_actions = self.actor(current_states_goals)
+        #new_actions = np.argmax(new_actions_softmax,axis=1).reshape(-1, 1)
+        #new_actions = torch.Tensor(new_actions).to(self.device)
         actor_loss = -self.critic(current_states_goals, new_actions).mean()
         # l2 regulizer: avoid move too much
-        actor_loss += ACTOR_LOSS_L2*(new_actions.pow(2)/self.bound_action[1]).mean()
+        #actor_loss += ACTOR_LOSS_L2*(new_actions.pow(2)/self.bound_action[1]).mean()
 
         # optimize actor network
         self.actor_optimizer.zero_grad()
