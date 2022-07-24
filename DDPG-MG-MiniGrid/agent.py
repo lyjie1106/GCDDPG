@@ -81,6 +81,7 @@ class Agent:
     # train
     def train(self,position,cycle):
         states,actions,rewards,next_states,goals = self.memory.sample(BATCH_SIZE)
+
         states = self.state_normalizer.normalize(states)
         next_states = self.state_normalizer.normalize(next_states)
         goals = self.goal_normalizer.normalize(goals)
@@ -93,11 +94,14 @@ class Agent:
         rewards = torch.Tensor(rewards).to(self.device)
         actions = torch.Tensor(actions).to(self.device)
 
+
+
         # calculate critic loss
         with torch.no_grad():
-            #target_action = self.actor_target(next_states_goals)
-            target_q = self.critic_target(next_states_goals,self.actor_target(next_states_goals))
+            target_action = self.actor_target(next_states_goals)
+            target_q = self.critic_target(next_states_goals,target_action)
             #target_q = target_q.detach()
+            #target_return = rewards + GAMMA * target_q.detach()*(-rewards)
             target_return = rewards + GAMMA * target_q.detach()
             #target_return = target_return.detach()
             # clip the return, due to the reward in env is non-positive
@@ -110,9 +114,8 @@ class Agent:
         new_actions = self.actor(current_states_goals)
         actor_loss = -self.critic(current_states_goals, new_actions).mean()
         # l2 regulizer: avoid move too much
-        actor_loss += new_actions.pow(2).mean()
-        if position==39 and cycle==49:
-            print()
+        actor_loss += ACTOR_LOSS_L2*(new_actions.pow(2)/self.bound_action[1]).mean()
+
         # optimize actor network
         self.actor_optimizer.zero_grad()
         actor_loss.backward()

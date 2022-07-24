@@ -110,6 +110,7 @@ def launch():
                     action = agent.choose_action(state, desired_goal)
 
                     next_env_dict, reward, done, info = env.step(action)
+
                     next_state = next_env_dict["observation"]
                     next_achieved_goal = next_env_dict["achieved_goal"]
                     next_desired_goal = next_env_dict["desired_goal"]
@@ -143,7 +144,7 @@ def launch():
         # eval, and print train detail
         if MPI.COMM_WORLD.Get_rank() == 0:
             global_success_rate.append(success_rate)
-            print('Epoch:%d|Episode_reward:%3f|Running_reward:%3f|Running_time:%1f|Actor_loss:%3f|Critic_loss:%3f|Success_rate:%3f'%(
+            print('Epoch:%d|Episode_reward:%3f|Running_reward:%3f|Running_time:%1f|Actor_loss:%3f|Critic_loss:%3f|success;:%3f'%(
                 epoch,episode_reward,running_reward,(start_time-time.time()),actor_loss,critic_loss,success_rate
             ))
     # plot train info after train

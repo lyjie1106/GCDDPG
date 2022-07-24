@@ -1,6 +1,6 @@
 import numpy as np
 from copy import deepcopy
-
+from her import HER_sampler
 class Memory:
     def __init__(self,capacity,k_future,env):
         self.capacity = capacity
@@ -8,7 +8,10 @@ class Memory:
         self.memory_counter = 0
         self.memory_length = 0
         self.env = env
-        self.future_p = 1 - (1. / (1+k_future))
+        #self.future_p = 1 - (1. / (1+k_future))
+        self.her = HER_sampler(k_future)
+
+
     def __len__(self):
         return len(self.memory)
 
@@ -22,7 +25,7 @@ class Memory:
         return np.clip(x,-200,200)
     def sample_for_normalization(self,batchs):
         size = len(batchs[0]['next_state'])
-
+        '''
         # select which episode and which timesteps to be used
         ep_indices = np.random.randint(0,len(batchs),size)
         time_indices = np.random.randint(0,len(batchs[0]['next_state']),size)
@@ -49,10 +52,15 @@ class Memory:
             future_ag.append(deepcopy(batchs[episode]['achieved_goal'][f_offset]))
         future_ag = np.vstack(future_ag)
         desired_goals[her_indices] = future_ag
-
+        
         return self.clip_obs(states),self.clip_obs(desired_goals)
+        '''
+        states, desired_goals = self.her.sample_for_normalization(batchs,size)
+        return self.clip_obs(states), self.clip_obs(desired_goals)
+
 
     def sample(self,batch_size):
+        '''
         # select which episode and which timesteps to be used
         ep_indices = np.random.randint(0,len(self.memory),batch_size)
         time_indices = np.random.randint(0,len(self.memory[0]['next_state']),batch_size)
@@ -92,3 +100,6 @@ class Memory:
         rewards = np.expand_dims(self.env.compute_reward(next_achieved_goals,desired_goals,None),1)
 
         return self.clip_obs(states),actions,rewards,self.clip_obs(next_states),self.clip_obs(desired_goals)
+        '''
+        states, actions, rewards, next_states, desired_goals = self.her.sample(self.memory,batch_size,self.env.compute_reward)
+        return self.clip_obs(states), actions, rewards, self.clip_obs(next_states), self.clip_obs(desired_goals)
