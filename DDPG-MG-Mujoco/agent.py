@@ -172,7 +172,27 @@ class Agent:
         self.soft_update_network(self.actor,self.actor_target)
         self.soft_update_network(self.critic,self.critic_target)
 
-
+    def save_model(self,name):
+        torch.save({'actor_state_dict':self.actor.state_dict(),
+                    'state_normalizer_mean':self.state_normalizer.mean,
+                    'state_normalizer_std':self.state_normalizer.std,
+                    'goal_normalizer_mean':self.goal_normalizer.mean,
+                    'goal_normalizer_std':self.goal_normalizer.std},
+                   name+'.pth')
+    def load_model(self,name):
+        checkpoint = torch.load(name+'.pth')
+        actor_state_dict = checkpoint['actor_state_dict']
+        self.actor.load_state_dict(actor_state_dict)
+        state_normalizer_mean = checkpoint['state_normalizer_mean']
+        self.state_normalizer.mean = state_normalizer_mean
+        state_normalizer_std = checkpoint['state_normalizer_std']
+        self.state_normalizer.std = state_normalizer_std
+        goal_normalizer_mean = checkpoint['goal_normalizer_mean']
+        self.goal_normalizer.mean = goal_normalizer_mean
+        goal_normalizer_std = checkpoint['goal_normalizer_std']
+        self.goal_normalizer.std = goal_normalizer_std
+    def set_eval_mode(self):
+        self.actor.eval()
 # get flat parameters or grads of network
 def _get_flat_params_or_grads(network,mode='params'):
     attr = 'data' if mode == 'params' else 'grad'

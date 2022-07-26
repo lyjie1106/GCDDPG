@@ -13,10 +13,11 @@ from mpi4py import MPI
 import random
 
 ENV_NAME = 'FetchSlide-v1'
-MAX_EPOCHS = 50
+MAX_EPOCHS = 1
 MAX_CYCLES = 50
 MAX_EPISODES = 2
 NUM_TRAIN = 40
+MODEL_NAME='FetchSlide'
 
 os.environ['OMP_NUM_THREADS'] = '1'
 os.environ['MKL_NUM_THREADS']='1'
@@ -147,8 +148,11 @@ def launch():
             print('Epoch:%d|Episode_reward:%3f|Running_reward:%3f|Running_time:%1f|Actor_loss:%3f|Critic_loss:%3f|success;:%3f'%(
                 epoch,episode_reward,running_reward,(start_time-time.time()),actor_loss,critic_loss,success_rate
             ))
+
     # plot train info after train
     if MPI.COMM_WORLD.Get_rank() == 0:
+        agent.save_model(MODEL_NAME)
+
         plt.figure()
         plt.subplot(311)
         plt.plot(np.arange(0, MAX_EPOCHS), global_actor_loss)

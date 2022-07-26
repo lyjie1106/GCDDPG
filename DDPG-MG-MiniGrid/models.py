@@ -33,7 +33,7 @@ class Actor(nn.Module):
         return output
 
 class Critic(nn.Module):
-    def __init__(self,n_state,n_action,n_goal,n_hidden1=256,n_hidden2=256,n_hidden3=128,initial_w = 3e-3):
+    def __init__(self,n_state,n_action,n_goal,n_hidden1=256,n_hidden2=256,n_hidden3=256,initial_w = 3e-3):
         self.n_state = n_state[0]
         self.n_action = n_action
         self.n_goal = n_goal

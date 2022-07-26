@@ -43,7 +43,7 @@ class ModifiedMiniGridEnv(SimpleMiniGridEnv):
             'observation': spaces.Box(
                 low=0,
                 high=255,
-                shape=(width * height + 1,),
+                shape=(2+4,),
                 dtype=np.int
             )
         })
@@ -66,3 +66,13 @@ class ModifiedMiniGridEnv(SimpleMiniGridEnv):
         # Initialize the environment
         self.agent_pos = self.agent_dir = self.goal_pos = self.step_count = self.grid = self.goals = None
         self.reset()
+    '''
+    def reset_state_goal(self):
+        agent_dir = self.np_random.randint(4)
+        agent_x=agent_y = 0
+        goal_x=goal_y = 4
+        self.agent_pos=np.array((agent_x,agent_y))
+        self.agent_dir = agent_dir
+        self.goal_pos = np.array((goal_x,goal_y))
+        return
+    '''
