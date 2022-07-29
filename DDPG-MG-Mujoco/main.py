@@ -13,11 +13,11 @@ from mpi4py import MPI
 import random
 
 ENV_NAME = 'FetchSlide-v1'
-MAX_EPOCHS = 1
+MAX_EPOCHS = 50
 MAX_CYCLES = 50
 MAX_EPISODES = 2
 NUM_TRAIN = 40
-MODEL_NAME='FetchSlide'
+MODEL_NAME='FetchSlide-50e-CHER'
 
 os.environ['OMP_NUM_THREADS'] = '1'
 os.environ['MKL_NUM_THREADS']='1'
@@ -165,8 +165,10 @@ def launch():
         plt.subplot(313)
         plt.plot(np.arange(0, MAX_EPOCHS), global_success_rate)
         plt.title('success rate')
+        plt.savefig('./train_log_cher.jpg')
+        # plt.show()
 
-        plt.show()
+        print('done')
 
 
 if __name__ == '__main__':

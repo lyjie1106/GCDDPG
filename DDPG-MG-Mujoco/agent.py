@@ -18,7 +18,7 @@ VAR=0.5
 ACTOR_LOSS_L2 = 1 #L2 regularization
 
 MEMORY_CAPACITY = 10000
-BATCH_SIZE=256
+BATCH_SIZE=128
 k_future = 4
 
 
@@ -93,8 +93,6 @@ class Agent:
         next_states_goals = torch.Tensor(next_states_goals).to(self.device)
         rewards = torch.Tensor(rewards).to(self.device)
         actions = torch.Tensor(actions).to(self.device)
-
-
 
         # calculate critic loss
         with torch.no_grad():

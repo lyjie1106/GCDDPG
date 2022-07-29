@@ -102,14 +102,15 @@ class Agent:
         current_states_goals = torch.Tensor(current_states_goals).to(self.device)
         next_states_goals = torch.Tensor(next_states_goals).to(self.device)
         rewards = torch.Tensor(rewards).to(self.device)
+        #generate one-hot action
         actions = torch.zeros(256,3).scatter_(1,torch.LongTensor(actions.tolist()),1).to(self.device)
         # calculate critic loss
         with torch.no_grad():
-            next_actions = torch.nn.functional.softmax(self.actor_target(next_states_goals),dim=1)
-            index = torch.argmax(next_actions,dim=1).unsqueeze(1)
-            next_actions = torch.zeros_like(next_actions).scatter_(1,index,1).to(self.device)
-            target_q = self.critic_target(next_states_goals, next_actions)
-
+            target_action = torch.nn.functional.softmax(self.actor_target(next_states_goals),dim=1)
+            index = torch.argmax(target_action,dim=1).unsqueeze(1)
+            # generate one-hot action
+            target_action = torch.zeros_like(target_action).scatter_(1,index,1).to(self.device)
+            target_q = self.critic_target(next_states_goals, target_action)
             target_return = rewards + GAMMA * target_q.detach()
             # clip the return, due to the reward in env is non-positive
             clip_return = 1 / (1 - GAMMA)

@@ -10,18 +10,18 @@ import torch
 import matplotlib.pyplot as plt
 from env.ModifiedFourRoomEnv import ModifiedFourRoomEnv
 
-ENV_NAME = 'ModifiedFourRoomEnv-v0'
-MODEL_NAME='ModifiedFourRoomEnv-100e'
+ENV_NAME = 'FetchSlide-v1'
+MODEL_NAME='FetchSlide-50e-CHER'
 MAX_EPISODES = 100
 
 env = envs.make(ENV_NAME)
 env.seed(9)
 
 n_state = env.observation_space.spaces['observation'].shape
-n_action = 1
-actions_num = 3
+n_action = env.action_space.shape[0]
 n_goal = env.observation_space.spaces['desired_goal'].shape[0]
-agent = Agent(n_state, n_action, n_goal, actions_num, deepcopy(env))
+bound_action = [env.action_space.low[0], env.action_space.high[0]]
+agent = Agent(n_state, n_action, n_goal, bound_action, deepcopy(env))
 
 
 agent.load_model(MODEL_NAME)
@@ -38,8 +38,8 @@ for i in range(MAX_EPISODES):
         desired_goal = env_dict['desired_goal']
     done=False
     for t in range(50):
-        actions, action_dicrete = agent.choose_action(state, desired_goal, i, train_mode=False)
-        next_env_dict, reward, done, info = env.step(env.actions(action_dicrete))
+        actions= agent.choose_action(state, desired_goal, train_mode=False)
+        next_env_dict, reward, done, info = env.step(actions)
         state = next_env_dict['observation'].copy()
         desired_goal = next_env_dict['desired_goal'].copy()
         '''

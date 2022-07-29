@@ -1,4 +1,7 @@
-import os
+import sys,os
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(BASE_DIR)
+
 import time
 
 import gym
@@ -10,17 +13,19 @@ import numpy as np
 import gym_simple_minigrid
 from env.ModifiedFourRoomEnv import ModifiedFourRoomEnv
 
+
+
 from gym import envs
 from copy import deepcopy
 from mpi4py import MPI
 import random
 
 ENV_NAME = 'ModifiedFourRoomEnv-v0'
-MAX_EPOCHS = 50
+MAX_EPOCHS = 100
 MAX_CYCLES = 50
 MAX_EPISODES = 2
 NUM_TRAIN = 40
-MODEL_NAME='ModifiedFourRoomEnv'
+MODEL_NAME='ModifiedFourRoomEnv-100e'
 
 os.environ['OMP_NUM_THREADS'] = '1'
 os.environ['MKL_NUM_THREADS']='1'
@@ -48,10 +53,10 @@ def eval(env,agent,final=False):
             with torch.no_grad():
                 actions,action_dicrete = agent.choose_action(state,desired_goal,ep,train_mode=False)
             next_env_dict, reward, done, info = env.step(env.actions(action_dicrete))
+            '''
             if final_ep and final:
                 print(next_env_dict)
-
-
+            '''
             state = next_env_dict['observation'].copy()
             desired_goal = next_env_dict['desired_goal'].copy()
             ep_success_rate.append(info['is_success'])
@@ -175,10 +180,10 @@ def launch():
         plt.subplot(313)
         plt.plot(np.arange(0, MAX_EPOCHS), global_success_rate)
         plt.title('success rate')
+        plt.savefig('./train_log.jpg')
+        #plt.show()
 
-        plt.show()
-
+        print('done')
 
 if __name__ == '__main__':
     launch()
-    print()

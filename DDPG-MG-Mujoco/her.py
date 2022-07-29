@@ -1,11 +1,13 @@
 import numpy as np
 from copy import deepcopy
 
+
 class HER_sampler:
-    def __init__(self,k_future):
+    def __init__(self, k_future):
         self.k_future = k_future
         self.future_p = 1 - (1. / (1 + k_future))
-    def sample_for_normalization(self,batchs,size):
+
+    def sample_for_normalization(self, batchs, size):
         # select which episode and which timesteps to be used
         ep_indices = np.random.randint(0, len(batchs), size)
         time_indices = np.random.randint(0, len(batchs[0]['next_state']), size)
@@ -35,7 +37,8 @@ class HER_sampler:
         desired_goals[her_indices] = future_ag
 
         return states, desired_goals
-    def sample(self,memory,batch_size,compute_reward_func):
+
+    def sample(self, memory, batch_size, compute_reward_func):
         # select which episode and which timesteps to be used
         ep_indices = np.random.randint(0, len(memory), batch_size)
         time_indices = np.random.randint(0, len(memory[0]['next_state']), batch_size)
