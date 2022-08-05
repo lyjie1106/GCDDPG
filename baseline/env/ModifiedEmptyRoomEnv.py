@@ -1,7 +1,6 @@
 import numpy as np
-from EnvCore import ModifiedMiniGridEnv
+from baseline.env.EnvCore import ModifiedMiniGridEnv
 from gym_simple_minigrid.minigrid import Wall
-from gym_simple_minigrid.minigrid import Goal
 
 # Map of agent direction indices to vectors
 DIRS = [

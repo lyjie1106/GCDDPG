@@ -1,7 +1,9 @@
 import numpy as np
 from copy import deepcopy
-from her import HER_sampler
-from cher import CHER_sampler
+
+from baseline.common.her import HER_sampler
+from baseline.common.cher import CHER_sampler
+
 
 class Memory:
     def __init__(self, capacity, k_future, env):
@@ -10,8 +12,8 @@ class Memory:
         self.memory_counter = 0
         self.memory_length = 0
         self.env = env
-       # self.her = HER_sampler(k_future)
-        self.her = CHER_sampler(k_future)
+        self.her = HER_sampler(k_future)
+        #self.her = CHER_sampler(k_future)
 
     def __len__(self):
         return len(self.memory)

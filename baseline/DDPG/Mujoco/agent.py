@@ -1,14 +1,13 @@
-import sys
-
 import numpy as np
 
-from models import Actor,Critic
+from baseline.DDPG.Mujoco.models import Actor,Critic
 from torch import from_numpy,device
 import torch
 from mpi4py import MPI
-from memory import Memory
 from torch.optim import Adam
-from normalizer import Normalizer
+
+from baseline.common.memory import Memory
+from baseline.common.normalizer import Normalizer
 
 GAMMA = 0.98
 LR_A = 5e-4
@@ -176,9 +175,9 @@ class Agent:
                     'state_normalizer_std':self.state_normalizer.std,
                     'goal_normalizer_mean':self.goal_normalizer.mean,
                     'goal_normalizer_std':self.goal_normalizer.std},
-                   name+'.pth')
+                   name)
     def load_model(self,name):
-        checkpoint = torch.load(name+'.pth')
+        checkpoint = torch.load(name)
         actor_state_dict = checkpoint['actor_state_dict']
         self.actor.load_state_dict(actor_state_dict)
         state_normalizer_mean = checkpoint['state_normalizer_mean']

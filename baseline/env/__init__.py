@@ -1,3 +1,4 @@
+'''
 from gym.envs.registration import register
 
 register(
@@ -8,3 +9,4 @@ register(
     id='ModifiedEmptyRoomEnv-v0',
     entry_point='env.ModifiedEmptyRoomEnv:ModifiedEmptyRoomEnv'
 )
+'''

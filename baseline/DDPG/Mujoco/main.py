@@ -1,7 +1,4 @@
-import sys,os
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(BASE_DIR)
-
+import os
 import time
 
 import gym
@@ -9,23 +6,18 @@ import torch
 import matplotlib.pyplot as plt
 from agent import Agent
 import numpy as np
-#import mujoco_py
-import gym_simple_minigrid
-from env.ModifiedFourRoomEnv import ModifiedFourRoomEnv
-
-
-
+import mujoco_py
 from gym import envs
 from copy import deepcopy
 from mpi4py import MPI
 import random
 
-ENV_NAME = 'ModifiedFourRoomEnv-v0'
-MAX_EPOCHS = 100
+ENV_NAME = 'FetchSlide-v1'
+MAX_EPOCHS = 50
 MAX_CYCLES = 50
 MAX_EPISODES = 2
 NUM_TRAIN = 40
-MODEL_NAME='ModifiedFourRoomEnv-100e'
+MODEL_NAME='FetchSlide-50e-CHER'
 
 os.environ['OMP_NUM_THREADS'] = '1'
 os.environ['MKL_NUM_THREADS']='1'
@@ -33,17 +25,16 @@ os.environ['IN_MPI'] = '1'
 
 
 
-def eval(env,agent,final=False):
+def eval(env,agent):
     total_success_rate = []
     total_reward = []
     running_r = []
     success_time=0
     for ep in range(20):
-        final_ep = (ep==19)
         ep_success_rate = []
         # reset ENV
         achieved_goal, desired_goal = 0, 0
-        while np.array_equal(achieved_goal, desired_goal):
+        while np.linalg.norm(achieved_goal - desired_goal) <= 0.05:
             env_dict = env.reset()
             state = env_dict['observation']
             achieved_goal = env_dict['achieved_goal']
@@ -51,12 +42,8 @@ def eval(env,agent,final=False):
         ep_reward = 0
         for t in range(50):
             with torch.no_grad():
-                actions,action_dicrete = agent.choose_action(state,desired_goal,ep,train_mode=False)
-            next_env_dict, reward, done, info = env.step(env.actions(action_dicrete))
-            '''
-            if final_ep and final:
-                print(next_env_dict)
-            '''
+                action = agent.choose_action(state,desired_goal,train_mode=False)
+            next_env_dict, reward, done, info = env.step(action)
             state = next_env_dict['observation'].copy()
             desired_goal = next_env_dict['desired_goal'].copy()
             ep_success_rate.append(info['is_success'])
@@ -76,7 +63,7 @@ def eval(env,agent,final=False):
 
 
 def launch():
-    # initial envcritic_loss
+    # initial env
     env = envs.make(ENV_NAME)
     env.seed(MPI.COMM_WORLD.Get_rank())
     random.seed(MPI.COMM_WORLD.Get_rank())
@@ -84,12 +71,10 @@ def launch():
     torch.manual_seed(MPI.COMM_WORLD.Get_rank())
 
     n_state = env.observation_space.spaces['observation'].shape
-    n_action = 1
-    actions_num = 3
+    n_action = env.action_space.shape[0]
     n_goal = env.observation_space.spaces['desired_goal'].shape[0]
-    #bound_action = [0,1,2]
-
-    agent = Agent(n_state, n_action, n_goal, actions_num, deepcopy(env))
+    bound_action = [env.action_space.low[0], env.action_space.high[0]]
+    agent = Agent(n_state, n_action, n_goal, bound_action, deepcopy(env))
     # record loss in each epoch
     global_actor_loss = []
     global_critic_loss = []
@@ -116,23 +101,23 @@ def launch():
                 }
                 # reset ENV
                 achieved_goal, desired_goal = 0, 0
-                while np.array_equal(achieved_goal,desired_goal):
+                while np.linalg.norm(achieved_goal - desired_goal) <= 0.05:
                     env_dict = env.reset()
                     state = env_dict['observation']
                     achieved_goal = env_dict['achieved_goal']
                     desired_goal = env_dict['desired_goal']
                 # take action
                 for t in range(50):
-                    actions,action_dicrete = agent.choose_action(state, desired_goal,epoch)
+                    action = agent.choose_action(state, desired_goal)
 
-                    next_env_dict, reward, done, info = env.step(action_dicrete)
+                    next_env_dict, reward, done, info = env.step(action)
 
                     next_state = next_env_dict["observation"]
                     next_achieved_goal = next_env_dict["achieved_goal"]
                     next_desired_goal = next_env_dict["desired_goal"]
 
                     episode_dict['state'].append(state.copy())
-                    episode_dict['action'].append(action_dicrete)
+                    episode_dict['action'].append(action.copy())
                     # episode_dict['info'].append(info.copy())
                     episode_dict['achieved_goal'].append(achieved_goal.copy())
                     episode_dict['desired_goal'].append(desired_goal.copy())
@@ -156,14 +141,14 @@ def launch():
             agent.update_network()
         global_actor_loss.append(epoch_actor_loss / MAX_CYCLES)
         global_critic_loss.append(epoch_critic_loss / MAX_CYCLES)
-        final = (epoch==(MAX_EPOCHS-1))
-        success_rate,running_reward,episode_reward = eval(env,agent,final)
+        success_rate,running_reward,episode_reward = eval(env,agent)
         # eval, and print train detail
         if MPI.COMM_WORLD.Get_rank() == 0:
             global_success_rate.append(success_rate)
-            print('Epoch:%d|Running_time:%1f|Actor_loss:%3f|Critic_loss:%3f|success;:%3f'%(
-                epoch,(time.time()-start_time),actor_loss,critic_loss,success_rate
+            print('Epoch:%d|Episode_reward:%3f|Running_reward:%3f|Running_time:%1f|Actor_loss:%3f|Critic_loss:%3f|success;:%3f'%(
+                epoch,episode_reward,running_reward,(start_time-time.time()),actor_loss,critic_loss,success_rate
             ))
+
     # plot train info after train
     if MPI.COMM_WORLD.Get_rank() == 0:
         agent.save_model(MODEL_NAME)
@@ -180,10 +165,11 @@ def launch():
         plt.subplot(313)
         plt.plot(np.arange(0, MAX_EPOCHS), global_success_rate)
         plt.title('success rate')
-        plt.savefig('./train_log.jpg')
-        #plt.show()
+        plt.savefig('./train_log_cher.jpg')
+        # plt.show()
 
         print('done')
+
 
 if __name__ == '__main__':
     launch()
