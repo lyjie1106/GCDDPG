@@ -22,17 +22,15 @@ k_future = 4
 
 
 class Agent:
-    def __init__(self, n_state, n_action, n_goal, actions_num, env):
+    def __init__(self, n_state, n_action, n_goal, actions_num, env, env_name):
         self.n_state = n_state
         self.n_action = n_action
         self.actions_discrete_num = actions_num
-
         self.n_goal = n_goal
-        # self.bound_action = bound_action
         self.env = env
+        self.env_name = env_name
 
         self.device = device('cuda' if torch.cuda.is_available() else 'cpu')
-        # self.device = device('cpu')
 
         self.actor = Actor(self.n_state, self.actions_discrete_num, self.n_goal).to(self.device)
         self.critic = Critic(self.n_state, self.actions_discrete_num, self.n_goal).to(self.device)

@@ -6,12 +6,13 @@ from baseline.common.cher import CHER_sampler
 
 
 class Memory:
-    def __init__(self, capacity, k_future, env):
+    def __init__(self, capacity, k_future, env,env_name):
         self.capacity = capacity
         self.memory = []
         self.memory_counter = 0
         self.memory_length = 0
         self.env = env
+        self.env_name = env_name
         self.her = HER_sampler(k_future)
         #self.her = CHER_sampler(k_future)
 

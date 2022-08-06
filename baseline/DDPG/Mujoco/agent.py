@@ -6,7 +6,8 @@ import torch
 from mpi4py import MPI
 from torch.optim import Adam
 
-from baseline.common.memory import Memory
+#from baseline.common.memory import Memory
+from baseline.common.memory_ebp import MemoryEnergy as Memory
 from baseline.common.normalizer import Normalizer
 
 GAMMA = 0.98
@@ -22,12 +23,13 @@ k_future = 4
 
 
 class Agent:
-    def __init__(self,n_state,n_action,n_goal,bound_action, env):
+    def __init__(self,n_state,n_action,n_goal,bound_action,env,env_name):
         self.n_state = n_state
         self.n_action = n_action
         self.n_goal = n_goal
         self.bound_action = bound_action
         self.env = env
+        self.env_name = env_name
 
         self.device = device('cuda' if torch.cuda.is_available() else 'cpu')
         #self.device = device('cpu')
@@ -41,7 +43,7 @@ class Agent:
         self.hard_update_network(self.actor,self.actor_target)
         self.hard_update_network(self.critic,self.critic_target)
 
-        self.memory = Memory(MEMORY_CAPACITY,k_future,self.env)
+        self.memory = Memory(MEMORY_CAPACITY,k_future,self.env,self.env_name)
 
         self.actor_optimizer = Adam(self.actor.parameters(),LR_A)
         self.critic_optimizer = Adam(self.critic.parameters(),LR_C)
