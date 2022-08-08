@@ -1,20 +1,21 @@
 import numpy as np
-from copy import deepcopy
 
-from baseline.common.her import HER_sampler
 from baseline.common.cher import CHER_sampler
+from baseline.common.her import HER_sampler
 
 
 class Memory:
-    def __init__(self, capacity, k_future, env,env_name):
-        self.capacity = capacity
+    def __init__(self, env, config):
+        self.capacity = config['MEMORY_CAPACITY']
         self.memory = []
         self.memory_counter = 0
         self.memory_length = 0
         self.env = env
-        self.env_name = env_name
-        self.her = HER_sampler(k_future)
-        #self.her = CHER_sampler(k_future)
+        self.Sampler_type = config['Sampler']
+        if self.Sampler_type == 'CHER':
+            self.sampler = CHER_sampler(config)
+        else:
+            self.sampler = HER_sampler(config)
 
     def __len__(self):
         return len(self.memory)
@@ -29,12 +30,12 @@ class Memory:
     def clip_obs(x):
         return np.clip(x, -200, 200)
 
-    def sample_for_normalization(self, batchs):
-        size = len(batchs[0]['next_state'])
-        states, desired_goals = self.her.sample_for_normalization(batchs, size)
+    def sample_for_normalization(self, batches):
+        size = len(batches[0]['next_state'])
+        states, desired_goals = self.sampler.sample_for_normalization(batches, size)
         return self.clip_obs(states), self.clip_obs(desired_goals)
 
     def sample(self, batch_size):
-        states, actions, rewards, next_states, desired_goals = self.her.sample(self.memory, batch_size,
-                                                                               self.env.compute_reward)
+        states, actions, rewards, next_states, desired_goals = self.sampler.sample(self.memory, batch_size,
+                                                                                   self.env.compute_reward)
         return self.clip_obs(states), actions, rewards, self.clip_obs(next_states), self.clip_obs(desired_goals)

@@ -1,44 +1,36 @@
 import math
 import random
 from copy import deepcopy
-
 from sklearn.neighbors import NearestNeighbors
 import numpy as np
 
-LEARNING_RATE = 0.0001
-LEARNING_STEP = 0
-LAMDA_0 = 1
-FIXED_LAMDA = -1
-SIZE_A = 64
-SIZE_k = 3
-
 
 class CHER_sampler:
-    def __init__(self, k_future):
-        self.k_future = k_future
-        self.future_p = 1 - (1. / (1 + k_future))
-        self.learning_rate = LEARNING_RATE
-        self.learning_step = LEARNING_STEP
-        self.lamda0 = LAMDA_0
-        self.fixed_lamda = FIXED_LAMDA
-        self.size_A = SIZE_A
-        self.size_k = SIZE_k
+    def __init__(self, config):
+        self.K_future = config['K_future']
+        self.learning_rate = config['LR_CHER']
+        self.learning_step = 0
+        self.lamda0 = config['LAMDA_0']
+        self.fixed_lamda = config['FIXED_LAMDA']
+        self.size_A = config['SIZE_A']
+        self.size_k = config['SIZE_k']
+        self.future_p = 1 - (1. / (1 + self.K_future))
 
-    def sample_for_normalization(self, batchs, size):
-        # select which episode and which timesteps to be used
-        ep_indices = np.random.randint(0, len(batchs), size)
-        time_indices = np.random.randint(0, len(batchs[0]['next_state']), size)
+    def sample_for_normalization(self, batches, size):
+        # select which episode and which timestep to be used
+        ep_indices = np.random.randint(0, len(batches), size)
+        time_indices = np.random.randint(0, len(batches[0]['next_state']), size)
 
         states = []
         desired_goals = []
         for episode, timestep in zip(ep_indices, time_indices):
-            states.append(deepcopy(batchs[episode]['state'][timestep]))
-            desired_goals.append((deepcopy(batchs[episode]['desired_goal'][timestep])))
+            states.append(deepcopy(batches[episode]['state'][timestep]))
+            desired_goals.append((deepcopy(batches[episode]['desired_goal'][timestep])))
         states = np.vstack(states)
         desired_goals = np.vstack(desired_goals)
 
         # for each transition, get a future offset from current goal to a new goal
-        future_offset = np.random.uniform(size=size) * (len(batchs[0]['next_state']) - time_indices)
+        future_offset = np.random.uniform(size=size) * (len(batches[0]['next_state']) - time_indices)
         future_offset = future_offset.astype(int)
 
         # HER
@@ -49,7 +41,7 @@ class CHER_sampler:
         # replace goal with new goal
         future_ag = []
         for episode, f_offset in zip(ep_indices[her_indices], future_t):
-            future_ag.append(deepcopy(batchs[episode]['achieved_goal'][f_offset]))
+            future_ag.append(deepcopy(batches[episode]['achieved_goal'][f_offset]))
         future_ag = np.vstack(future_ag)
         desired_goals[her_indices] = future_ag
 
@@ -95,12 +87,13 @@ class CHER_sampler:
         desired_goals[her_indices] = future_ag
         rewards = np.expand_dims(compute_reward_func(next_achieved_goals, desired_goals, None), 1)
 
-        states_cher, actions_cher, rewards_cher, next_states_cher, achieved_goals_cher, desired_goals_cher = self.curriclum(
+        states_cher, actions_cher, rewards_cher, next_states_cher, achieved_goals_cher, desired_goals_cher = self.curriculum(
             states, actions, rewards, next_states, achieved_goals, desired_goals)
+
         return states_cher, actions_cher, rewards_cher, next_states_cher, desired_goals_cher
 
-    # curriclum HER
-    def curriclum(self, states, actions, rewards, next_states, achieved_goals, desired_goals):
+    # curriculum HER
+    def curriculum(self, states, actions, rewards, next_states, achieved_goals, desired_goals):
         set_list = self.lazier_and_goals_sample(desired_goals, achieved_goals)
         states_cher = states[set_list]
         actions_cher = actions[set_list]
@@ -115,7 +108,7 @@ class CHER_sampler:
     # Lazier than Lazy Greedy, k=3
     def lazier_and_goals_sample(self, desired_goals, achieved_goal):
         num_neighbor = 1
-        # get kneighbors_graph of desired_goals, kgraph[i][j]=d means goal j is the closest neighbor of goal i, with distance d
+        # get k-neighbors_graph of desired_goals, kgraph[i][j]=d means goal j is the closest neighbor of goal i, with distance d
         kgraph = NearestNeighbors(n_neighbors=num_neighbor, algorithm='kd_tree', metric='euclidean').fit(
             desired_goals).kneighbors_graph(mode='distance').tocoo(copy=False)
         # set of row and col that each element in
@@ -126,7 +119,7 @@ class CHER_sampler:
         delta = np.mean(kgraph.data)
         # store all idx of selected tuples
         sel_idx_set = []
-        # inital a idx set of transition tuples
+        # initial an idx set of transition tuples
         idx_set = [i for i in range(len(desired_goals))]
         # initial lamda
         balance = self.fixed_lamda
@@ -147,12 +140,12 @@ class CHER_sampler:
             # iterate minibatch A of size k
             for j in range(sub_size):
                 k_idx = sub_set[j]
-                # a_set store maxsim(gl,gj) that gl belong to A, gj belong to B
+                # a_set store maximum(gl,gj) that gl belong to A, gj belong to B
                 marginal_v, new_a_set = self.fa(k_idx, max_set, v_set, sim, row, col)
                 distance = np.linalg.norm(desired_goals[sub_set[j]] - achieved_goal[sub_set[j]])
                 # controversial: not follow Eq.6
                 marginal_v = marginal_v - balance * distance
-                # if find bigger value
+                # if it finds bigger value
                 if marginal_v > max_marginal:
                     # update selected idx
                     sel_idx = k_idx
@@ -183,7 +176,7 @@ class CHER_sampler:
             sim_ik = 0
             if k == col[i]:
                 sim_ik = sim[i]
-            # if sim(gi,gj)-maxsim(gl,gj)>0, F(i|A)+=sim(gi,gj)-maxsim(gl,gj)
+            # if sim(gi,gj)-maximum(gl,gj)>0, F(i|A)+=sim(gi,gj)-maximum(gl,gj)
             if sim_ik > a_set[i]:
                 max_ki = sim_ik
                 new_a_set.append(max_ki)

@@ -6,29 +6,24 @@ from torch.optim import Adam
 
 from baseline.common.memory import Memory
 from baseline.common.normalizer import Normalizer
-from baseline.DDPG.MiniGrid.models import Actor,Critic
-
-GAMMA = 0.95
-LR_A = 5e-4
-LR_C = 5e-4
-TAU = 0.05
-VAR = 0.5
-#ACTOR_LOSS_L2 = 1  # L2 regularization
-Epsilon = 0.1
-
-MEMORY_CAPACITY = 10000
-BATCH_SIZE = 64
-k_future = 4
+from baseline.DDPG.MiniGrid.models import Actor, Critic
 
 
 class Agent:
-    def __init__(self, n_state, n_action, n_goal, actions_num, env, env_name):
+    def __init__(self, n_state, n_action, n_goal, actions_num, env, config):
         self.n_state = n_state
         self.n_action = n_action
         self.actions_discrete_num = actions_num
         self.n_goal = n_goal
         self.env = env
-        self.env_name = env_name
+        self.env_name = config['Env_name']
+        self.MEMORY_CAPACITY = config['MEMORY_CAPACITY']
+        self.K_future = config['K_future']
+        self.LR_A = config['LR_A']
+        self.LR_C = config['LR_C']
+        self.BATCH_SIZE = config['BATCH_SIZE']
+        self.GAMMA = config['GAMMA']
+        self.TAU = config['TAU']
 
         self.device = device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -41,15 +36,12 @@ class Agent:
         self.hard_update_network(self.actor, self.actor_target)
         self.hard_update_network(self.critic, self.critic_target)
 
-        self.memory = Memory(MEMORY_CAPACITY, k_future, self.env)
-
-        self.actor_optimizer = Adam(self.actor.parameters(), LR_A)
-        self.critic_optimizer = Adam(self.critic.parameters(), LR_C)
+        self.memory = Memory(self.env, config)
+        self.actor_optimizer = Adam(self.actor.parameters(), self.LR_A)
+        self.critic_optimizer = Adam(self.critic.parameters(), self.LR_C)
 
         self.state_normalizer = Normalizer(self.n_state[0], default_clip_range=5)
         self.goal_normalizer = Normalizer(self.n_goal, default_clip_range=5)
-
-        # self.critic_loss = torch.nn.MSELoss()
 
     # choose action
     def choose_action(self, state, goal, epoch, train_mode=True):
@@ -69,14 +61,14 @@ class Agent:
         if train_mode:
             e = 1. / ((epoch / 50) + 10)
 
-            if np.random.uniform()>e:
-                action_dicrete = np.argmax(actions_prob)
+            if np.random.uniform() > e:
+                action_discrete = np.argmax(actions_prob)
             else:
-                action_dicrete = np.random.randint(0,self.actions_discrete_num)
+                action_discrete = np.random.randint(0, self.actions_discrete_num)
         else:
-            action_dicrete = np.argmax(actions_prob)
+            action_discrete = np.argmax(actions_prob)
 
-        return actions_prob, action_dicrete
+        return actions_prob, action_discrete
 
     # store minibatch into memory
     def store(self, minibatch):
@@ -85,8 +77,8 @@ class Agent:
         self._update_normalizer(minibatch)
 
     # train
-    def train(self, position, cycle):
-        states, actions, rewards, next_states, goals = self.memory.sample(BATCH_SIZE)
+    def train(self):
+        states, actions, rewards, next_states, goals = self.memory.sample(self.BATCH_SIZE)
 
         states = self.state_normalizer.normalize(states)
         next_states = self.state_normalizer.normalize(next_states)
@@ -98,27 +90,28 @@ class Agent:
         current_states_goals = torch.Tensor(current_states_goals).to(self.device)
         next_states_goals = torch.Tensor(next_states_goals).to(self.device)
         rewards = torch.Tensor(rewards).to(self.device)
-        #generate one-hot action
-        actions = torch.zeros(BATCH_SIZE,3).scatter_(1,torch.LongTensor(actions.tolist()),1).to(self.device)
+        # generate one-hot action
+        actions = torch.zeros(self.BATCH_SIZE, 3).scatter_(1, torch.LongTensor(actions.tolist()), 1).to(self.device)
         # calculate critic loss
         with torch.no_grad():
-            target_action = torch.nn.functional.softmax(self.actor_target(next_states_goals),dim=1)
-            index = torch.argmax(target_action,dim=1).unsqueeze(1)
+            target_action = torch.nn.functional.softmax(self.actor_target(next_states_goals), dim=1)
+            index = torch.argmax(target_action, dim=1).unsqueeze(1)
             # generate one-hot action
-            target_action = torch.zeros_like(target_action).scatter_(1,index,1).to(self.device)
+            target_action = torch.zeros_like(target_action).scatter_(1, index, 1).to(self.device)
             target_q = self.critic_target(next_states_goals, target_action)
-            target_return = rewards + GAMMA * target_q.detach()
+            target_return = rewards + self.GAMMA * target_q.detach()
             # clip the return, due to the reward in env is non-positive
-            clip_return = 1 / (1 - GAMMA)
+            clip_return = 1 / (1 - self.GAMMA)
             target_return = torch.clamp(target_return, -clip_return, 0)
         q_eval = self.critic(current_states_goals, actions)
         critic_loss = (target_return - q_eval).pow(2).mean()
 
         # calculate actor loss
         new_actions = self.actor(current_states_goals)
-        differentiable_a = torch.nn.functional.gumbel_softmax(torch.log(torch.nn.functional.softmax(new_actions,1)),hard=True)
+        differentiable_a = torch.nn.functional.gumbel_softmax(torch.log(torch.nn.functional.softmax(new_actions, 1)),
+                                                              hard=True)
         actor_loss = -self.critic(current_states_goals, differentiable_a).mean()
-        # l2 regulizer: avoid move too much
+        # l2 Regularization: avoid move too much
         # actor_loss += ACTOR_LOSS_L2*(new_actions.pow(2)/self.bound_action[1]).mean()
 
         # optimize actor network
@@ -140,9 +133,9 @@ class Agent:
     def hard_update_network(local_model, target_model):
         target_model.load_state_dict(local_model.state_dict())
 
-    # soft update taget network(ExponentialMovingAverage)
+    # soft update target network(ExponentialMovingAverage)
     @staticmethod
-    def soft_update_network(local_model, target_model):
+    def soft_update_network(local_model, target_model, TAU):
         for target_params, local_params in zip(target_model.parameters(), local_model.parameters()):
             target_params.data.copy_(TAU * local_params.data + (1 - TAU) * target_params.data)
 
@@ -174,16 +167,18 @@ class Agent:
 
     # update network
     def update_network(self):
-        self.soft_update_network(self.actor, self.actor_target)
-        self.soft_update_network(self.critic, self.critic_target)
-    def save_model(self,name):
-        torch.save({'actor_state_dict':self.actor.state_dict(),
-                    'state_normalizer_mean':self.state_normalizer.mean,
-                    'state_normalizer_std':self.state_normalizer.std,
-                    'goal_normalizer_mean':self.goal_normalizer.mean,
-                    'goal_normalizer_std':self.goal_normalizer.std},
+        self.soft_update_network(self.actor, self.actor_target, self.TAU)
+        self.soft_update_network(self.critic, self.critic_target, self.TAU)
+
+    def save_model(self, name):
+        torch.save({'actor_state_dict': self.actor.state_dict(),
+                    'state_normalizer_mean': self.state_normalizer.mean,
+                    'state_normalizer_std': self.state_normalizer.std,
+                    'goal_normalizer_mean': self.goal_normalizer.mean,
+                    'goal_normalizer_std': self.goal_normalizer.std},
                    name)
-    def load_model(self,name):
+
+    def load_model(self, name):
         checkpoint = torch.load(name)
         actor_state_dict = checkpoint['actor_state_dict']
         self.actor.load_state_dict(actor_state_dict)
@@ -195,8 +190,10 @@ class Agent:
         self.goal_normalizer.mean = goal_normalizer_mean
         goal_normalizer_std = checkpoint['goal_normalizer_std']
         self.goal_normalizer.std = goal_normalizer_std
+
     def set_eval_mode(self):
         self.actor.eval()
+
 
 # get flat parameters or grads of network
 def _get_flat_params_or_grads(network, mode='params'):
