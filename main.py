@@ -3,7 +3,7 @@ import configparser
 import os
 import sys
 
-from baseline.DDPG.train import launch
+from baseline.ddpg.train import launch
 from baseline.common.utils import str_to_int, str_to_float
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

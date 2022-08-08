@@ -4,8 +4,8 @@ import numpy as np
 from gym import envs
 from torch import device
 import torch
-from baseline.DDPG.Mujoco.agent import Agent as Agent_Mujoco
-from baseline.DDPG.MiniGrid.agent import Agent as Agent_Minigrid
+from baseline.ddpg.mujoco.agent import Agent as Agent_Mujoco
+from baseline.ddpg.minigrid.agent import Agent as Agent_Minigrid
 
 ENV_TYPE = 'mujoco'
 ENV_NAME = 'FetchSlide-v1'

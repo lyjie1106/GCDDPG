@@ -6,7 +6,7 @@ from torch.optim import Adam
 
 from baseline.common.memory import Memory
 from baseline.common.normalizer import Normalizer
-from baseline.DDPG.MiniGrid.models import Actor, Critic
+from baseline.ddpg.minigrid.models import Actor, Critic
 
 
 class Agent:

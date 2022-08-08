@@ -1,6 +1,6 @@
 import numpy as np
 
-from baseline.DDPG.Mujoco.models import Actor, Critic
+from baseline.ddpg.mujoco.models import Actor, Critic
 from torch import from_numpy, device
 import torch
 from mpi4py import MPI

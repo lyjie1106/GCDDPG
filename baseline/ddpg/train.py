@@ -7,9 +7,10 @@ from gym import envs
 from copy import deepcopy
 from mpi4py import MPI
 import random
-from baseline.DDPG.Mujoco.agent import Agent as Agent_Mujoco
-from baseline.DDPG.MiniGrid.agent import Agent as Agent_Minigrid
+from baseline.ddpg.mujoco.agent import Agent as Agent_Mujoco
+from baseline.ddpg.minigrid.agent import Agent as Agent_Minigrid
 import json
+from torch.utils.tensorboard import SummaryWriter
 
 data_dir_path = './data'
 
@@ -24,10 +25,11 @@ def train(env, agent, config):
 
     dir_name = ''
     if MPI.COMM_WORLD.Get_rank() == 0:
-        train_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
+        train_time = time.strftime('%m-%d_%H:%M', time.localtime())
         dir_name = '{}-{}'.format(train_time, env_name)
         mkdir('{}/{}'.format(data_dir_path, dir_name))
         save_config(config, '{}/{}/config.json'.format(data_dir_path, dir_name))
+        writer = SummaryWriter('{}/{}/log'.format(data_dir_path, dir_name))
     dir_name = MPI.COMM_WORLD.bcast(dir_name, root=0)
 
     # record loss in each epoch
@@ -89,16 +91,25 @@ def train(env, agent, config):
                 actor_loss, critic_loss = agent.train()
                 cycle_actor_loss += actor_loss
                 cycle_critic_loss += critic_loss
-            epoch_actor_loss += cycle_actor_loss / num_train
-            epoch_critic_loss += cycle_critic_loss / num_train
+            cycle_actor_loss = cycle_actor_loss / num_train
+            cycle_critic_loss = cycle_critic_loss / num_train
+            epoch_actor_loss += cycle_actor_loss
+            epoch_critic_loss += cycle_critic_loss
             agent.update_network()
+        epoch_actor_loss = epoch_actor_loss / max_cycles
+        epoch_critic_loss = epoch_critic_loss / max_cycles
         success_rate = eval(env, agent, env_type)
         time_duration = time.time() - start_time
-        global_success_rate.append(success_rate)
-        global_actor_loss.append(epoch_actor_loss / max_cycles)
-        global_critic_loss.append(epoch_critic_loss / max_cycles)
-        print_train_info(epoch, time_duration, actor_loss, critic_loss, success_rate)
-        save_model(epoch + 1, agent, dir_name)
+
+        if MPI.COMM_WORLD.Get_rank() == 0:
+            writer.add_scalar('loss/actor', epoch_actor_loss, epoch)
+            writer.add_scalar('loss/critic', epoch_critic_loss, epoch)
+            writer.add_scalar('success_rate', success_rate, epoch)
+            writer.add_scalar('time', time_duration, epoch)
+            print_train_info(epoch, time_duration, actor_loss, critic_loss, success_rate)
+            save_model(epoch + 1, agent, dir_name)
+
+    '''
     if MPI.COMM_WORLD.Get_rank() == 0:
         plt.figure()
         plt.subplot(311)
@@ -113,6 +124,7 @@ def train(env, agent, config):
         plt.plot(np.arange(0, max_epochs), global_success_rate)
         plt.title('success rate')
         plt.savefig('{}/{}/train_log.jpg'.format(data_dir_path, dir_name))
+    '''
 
 
 def save_config(config, path):
@@ -126,15 +138,14 @@ def mkdir(path):
 
 
 def save_model(epoch, agent, dir_name):
-    if MPI.COMM_WORLD.Get_rank() == 0 and epoch % 10 == 0:
+    if epoch % 10 == 0:
         agent.save_model('{}/{}/{}.pth'.format(data_dir_path, dir_name, epoch))
 
 
 def print_train_info(epoch, time_duration, actor_loss, critic_loss, success_rate):
-    if MPI.COMM_WORLD.Get_rank() == 0:
-        print('Epoch:%d|Running_time:%1f|Actor_loss:%3f|Critic_loss:%3f|success;:%3f' % (
-            epoch, time_duration, actor_loss, critic_loss, success_rate
-        ))
+    print('Epoch:%d|Running_time:%1f|Actor_loss:%3f|Critic_loss:%3f|success;:%3f' % (
+        epoch, time_duration, actor_loss, critic_loss, success_rate
+    ))
 
 
 def check_if_achieved(achieved_goal, desired_goal, env_type):
