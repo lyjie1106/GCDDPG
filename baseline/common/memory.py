@@ -2,6 +2,7 @@ import numpy as np
 
 from baseline.common.cher import CHER_sampler
 from baseline.common.her import HER_sampler
+from baseline.common.vanilla_sampler import Vanilla_sampler
 
 
 class Memory:
@@ -14,8 +15,10 @@ class Memory:
         self.Sampler_type = config['Sampler']
         if self.Sampler_type == 'CHER':
             self.sampler = CHER_sampler(config)
-        else:
+        elif self.Sampler_type == 'HER':
             self.sampler = HER_sampler(config)
+        elif self.Sampler_type == 'Vanilla':
+            self.sampler = Vanilla_sampler(config)
 
     def __len__(self):
         return len(self.memory)

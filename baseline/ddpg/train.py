@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 import torch
 import matplotlib.pyplot as plt
@@ -31,12 +32,6 @@ def train(env, agent, config):
         save_config(config, '{}/{}/config.json'.format(data_dir_path, dir_name))
         writer = SummaryWriter('{}/{}/log'.format(data_dir_path, dir_name))
     dir_name = MPI.COMM_WORLD.bcast(dir_name, root=0)
-
-    # record loss in each epoch
-    global_actor_loss = []
-    global_critic_loss = []
-    # record success rate
-    global_success_rate = []
 
     for epoch in range(max_epochs):
         epoch_actor_loss, epoch_critic_loss = 0, 0
@@ -189,10 +184,13 @@ def launch(config):
     env_name = config['Env_name']
 
     env = envs.make(env_name)
-    env.seed(MPI.COMM_WORLD.Get_rank())
-    random.seed(MPI.COMM_WORLD.Get_rank())
-    np.random.seed(MPI.COMM_WORLD.Get_rank())
-    torch.manual_seed(MPI.COMM_WORLD.Get_rank())
+    base_seed=random.randint(0,100)
+    seed = base_seed+MPI.COMM_WORLD.Get_rank()
+
+    env.seed(seed)
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
 
     if env_type == 'minigrid':
         n_state = env.observation_space.spaces['observation'].shape

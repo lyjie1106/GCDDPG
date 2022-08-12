@@ -68,7 +68,7 @@ def read_config(config_file_path):
     elif config_dict['TAU'] >= 1 or config_dict['TAU'] <= 0:
         print('Error: TAU value not in (0,1)')
         flag = True
-    elif config_dict['Sampler'] not in ['HER', 'CHER', 'EBPHER']:
+    elif config_dict['Sampler'] not in ['Vanilla','HER', 'CHER', 'EBPHER']:
         print('Error: {} is not an available sampler'.format(config_dict['Sampler']))
         flag = True
     elif config_dict['Sampler'] == 'EBPHER' and config_dict['Env_name'] not in ['FetchPickAndPlace-v1', 'FetchPush-v1',
