@@ -91,7 +91,7 @@ class Agent:
         next_states_goals = torch.Tensor(next_states_goals).to(self.device)
         rewards = torch.Tensor(rewards).to(self.device)
         # generate one-hot action
-        actions = torch.zeros(self.BATCH_SIZE, 3).scatter_(1, torch.LongTensor(actions.tolist()), 1).to(self.device)
+        actions = torch.zeros(states.shape[0], 3).scatter_(1, torch.LongTensor(actions.tolist()), 1).to(self.device)
         # calculate critic loss
         with torch.no_grad():
             target_action = torch.nn.functional.softmax(self.actor_target(next_states_goals), dim=1)

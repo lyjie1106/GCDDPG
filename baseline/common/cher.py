@@ -111,6 +111,10 @@ class CHER_sampler:
         # get k-neighbors_graph of desired_goals, kgraph[i][j]=d means goal j is the closest neighbor of goal i, with distance d
         kgraph = NearestNeighbors(n_neighbors=num_neighbor, algorithm='kd_tree', metric='euclidean').fit(
             desired_goals).kneighbors_graph(mode='distance').tocoo(copy=False)
+
+        if np.sum(kgraph.data)==0:
+            kgraph.data[np.where(kgraph.data == 0)] = 1
+
         # set of row and col that each element in
         row = kgraph.row
         col = kgraph.col
