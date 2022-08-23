@@ -1,0 +1,1 @@
+{"Env_type": "minigrid", "Env_name": "ModifiedEmptyRoomEnv-v0", "MAX_EPOCHS": 50, "MAX_CYCLES": 50, "MAX_EPISODES": 2, "NUM_TRAIN": 50, "GAMMA": 0.95, "LR_A": 0.0005, "LR_C": 0.0005, "TAU": 0.05, "MEMORY_CAPACITY": 10000, "BATCH_SIZE": 128, "K_future": 4, "Sampler": "CHER", "LR_CHER": 0.0001, "LAMDA_0": 1.0, "FIXED_LAMDA": -1.0, "SIZE_A": 64, "SIZE_k": 3}
