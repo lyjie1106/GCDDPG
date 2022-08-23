@@ -1,4 +1,3 @@
-import math
 import random
 from copy import deepcopy
 from sklearn.neighbors import NearestNeighbors
@@ -128,7 +127,7 @@ class CHER_sampler:
         # initial lamda
         balance = self.fixed_lamda
         if int(balance) == -1:
-            balance = math.pow(1 + self.learning_rate, self.learning_step) * self.lamda0
+            balance = np.power(1 + self.learning_rate,self.learning_step)*self.lamda0
         v_set = [i for i in range(len(desired_goals))]
         max_set = []
         # size(A)=SIZE_A
