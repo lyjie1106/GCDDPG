@@ -2,12 +2,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tensorboard.backend.event_processing import event_accumulator
 import os
-type='time'
-env = 'gamma'
+#type='success_rate'
+type = 'time'
+env = 'LR'
 
 
 def read_data(dir_name):
-    data_dir_path = '../../data/experiment-5/'+env
+    data_dir_path = '../../data/experiment-4/'+env
     all_success_rate_list = []
     for dir_temp in os.listdir('{}/{}'.format(data_dir_path, dir_name)):
         filename = os.listdir('{}/{}/{}/log'.format(data_dir_path, dir_name, dir_temp))[0]
@@ -28,7 +29,7 @@ def read_data(dir_name):
 if __name__ == '__main__':
     iters = list(range(50))
 
-    labels=['gamma-0.9','gamma-0.95','gamma-0.99']
+    labels=['LR-1e-3','LR-5e-4','LR-1e-4']
     #legend = ['kinetic=0,potential=1','kinetic=1,potential=1','kinetic=1,potential=0','vanilla']
 
     avg_list,upper_bound_list,lower_bound_list = [],[],[]
@@ -49,7 +50,12 @@ if __name__ == '__main__':
         plt.plot(iters,avg_list[i],color=color[i],label=labels[i])
         plt.fill_between(iters,lower_bound_list[i],upper_bound_list[i],color=color[i],alpha=0.1)
     #plt.ylim((0, 1))
+    #plt.axhline(y=0.6, c='r', ls='--', lw=2)
+    plt.ylabel('time(s)')
+
     plt.xlim((0, 50))
     plt.legend()
-    plt.savefig(env+'.png')
+    plt.xlabel('epoch')
+
+    plt.savefig(env+"-"+type+'.png')
     plt.show()
