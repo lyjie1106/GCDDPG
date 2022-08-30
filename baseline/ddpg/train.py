@@ -1,17 +1,17 @@
-import os
-import sys
-import time
-import torch
-import matplotlib.pyplot as plt
-import numpy as np
-from gym import envs
-from copy import deepcopy
-from mpi4py import MPI
-import random
-from baseline.ddpg.mujoco.agent import Agent as Agent_Mujoco
-from baseline.ddpg.minigrid.agent import Agent as Agent_Minigrid
 import json
+import os
+import random
+import time
+from copy import deepcopy
+
+import numpy as np
+import torch
+from gym import envs
+from mpi4py import MPI
 from torch.utils.tensorboard import SummaryWriter
+
+from baseline.ddpg.minigrid.agent import Agent as Agent_Minigrid
+from baseline.ddpg.mujoco.agent import Agent as Agent_Mujoco
 
 data_dir_path = './data'
 
@@ -184,8 +184,8 @@ def launch(config):
     env_name = config['Env_name']
 
     env = envs.make(env_name)
-    base_seed=random.randint(0,100)
-    seed = base_seed+MPI.COMM_WORLD.Get_rank()
+    base_seed = random.randint(0, 100)
+    seed = base_seed + MPI.COMM_WORLD.Get_rank()
 
     env.seed(seed)
     random.seed(seed)

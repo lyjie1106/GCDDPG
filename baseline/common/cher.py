@@ -1,7 +1,8 @@
 import random
 from copy import deepcopy
-from sklearn.neighbors import NearestNeighbors
+
 import numpy as np
+from sklearn.neighbors import NearestNeighbors
 
 
 class CHER_sampler:
@@ -111,7 +112,7 @@ class CHER_sampler:
         kgraph = NearestNeighbors(n_neighbors=num_neighbor, algorithm='kd_tree', metric='euclidean').fit(
             desired_goals).kneighbors_graph(mode='distance').tocoo(copy=False)
 
-        if np.sum(kgraph.data)==0:
+        if np.sum(kgraph.data) == 0:
             kgraph.data[np.where(kgraph.data == 0)] = 1
 
         # set of row and col that each element in
@@ -127,7 +128,7 @@ class CHER_sampler:
         # initial lamda
         balance = self.fixed_lamda
         if int(balance) == -1:
-            balance = np.power(1 + self.learning_rate,self.learning_step)*self.lamda0
+            balance = np.power(1 + self.learning_rate, self.learning_step) * self.lamda0
         v_set = [i for i in range(len(desired_goals))]
         max_set = []
         # size(A)=SIZE_A

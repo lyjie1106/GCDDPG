@@ -3,8 +3,8 @@ import configparser
 import os
 import sys
 
-from baseline.ddpg.train import launch
 from baseline.common.utils import str_to_int, str_to_float
+from baseline.ddpg.train import launch
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(BASE_DIR)
@@ -34,12 +34,12 @@ def read_config(config_file_path):
                    'K_future': str_to_int(cfg.get('ExperienceReplay', 'K_future')),
                    'Sampler': cfg.get('ExperienceReplay', 'Sampler')}
     if config_dict['Sampler'] == 'CHER':
-        config_dict['LR_CHER'] = str_to_float(cfg.get('CHER_Setting','LR_CHER'))
+        config_dict['LR_CHER'] = str_to_float(cfg.get('CHER_Setting', 'LR_CHER'))
         config_dict['LAMDA_0'] = str_to_float(cfg.get('CHER_Setting', 'LAMDA_0'))
         config_dict['FIXED_LAMDA'] = str_to_float(cfg.get('CHER_Setting', 'FIXED_LAMDA'))
         config_dict['SIZE_A'] = str_to_int(cfg.get('CHER_Setting', 'SIZE_A'))
         config_dict['SIZE_k'] = str_to_int(cfg.get('CHER_Setting', 'SIZE_k'))
-    elif config_dict['Sampler']=='EBPHER':
+    elif config_dict['Sampler'] == 'EBPHER':
         config_dict['G'] = str_to_float(cfg.get('EBP_Setting', 'G'))
         config_dict['M'] = str_to_float(cfg.get('EBP_Setting', 'M'))
         config_dict['Delta_t'] = str_to_float(cfg.get('EBP_Setting', 'Delta_t'))
@@ -68,14 +68,14 @@ def read_config(config_file_path):
     elif config_dict['TAU'] >= 1 or config_dict['TAU'] <= 0:
         print('Error: TAU value not in (0,1)')
         flag = True
-    elif config_dict['Sampler'] not in ['Vanilla','HER', 'CHER', 'EBPHER']:
+    elif config_dict['Sampler'] not in ['Vanilla', 'HER', 'CHER', 'EBPHER']:
         print('Error: {} is not an available sampler'.format(config_dict['Sampler']))
         flag = True
     elif config_dict['Sampler'] == 'EBPHER' and config_dict['Env_name'] not in ['FetchPickAndPlace-v1', 'FetchPush-v1',
                                                                                 'FetchSlide-v1']:
         print('Error: Sampler EBPHER only for env FetchPickAndPlace-v1,FetchPush-v1,FetchSlide-v1')
         flag = True
-    elif config_dict['Sampler'] == 'CHER' and config_dict['BATCH_SIZE']<=config_dict['SIZE_A']:
+    elif config_dict['Sampler'] == 'CHER' and config_dict['BATCH_SIZE'] <= config_dict['SIZE_A']:
         print('Error: Batch Size must > SIZE_A')
         flag = True
 

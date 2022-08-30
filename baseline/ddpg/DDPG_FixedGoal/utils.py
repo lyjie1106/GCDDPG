@@ -1,4 +1,3 @@
-import numpy as np
 '''
 class OrnsteinUhlenbeckActionNoise:
     def __init__(self,mu,sigma,theta=0.15,dt=1e-2,x0=None):

@@ -1,6 +1,7 @@
 import numpy as np
-from baseline.env.EnvCore import ModifiedMiniGridEnv
 from gym_simple_minigrid.minigrid import Wall
+
+from baseline.env.EnvCore import ModifiedMiniGridEnv
 
 # Map of agent direction indices to vectors
 DIRS = [
@@ -14,6 +15,7 @@ DIRS = [
     (0, -1),
 ]
 DIR_TO_VEC = {i: np.array(d) for i, d in enumerate(DIRS)}
+
 
 class ModifiedFourRoomEnv(ModifiedMiniGridEnv):
     def __init__(self):
@@ -108,19 +110,19 @@ class ModifiedFourRoomEnv(ModifiedMiniGridEnv):
         else:
             raise ValueError('Action out of bounds')
 
-        if self.step_count>=self.max_steps:
-            done=True
+        if self.step_count >= self.max_steps:
+            done = True
             info['TimeLimit.truncated'] = True
-        if np.array_equal(self.agent_pos,self.goal_pos):
+        if np.array_equal(self.agent_pos, self.goal_pos):
             done = True
             info['is_success'] = True
             reward = 0
-        return self._get_obs(),reward,done,info
+        return self._get_obs(), reward, done, info
 
-    def compute_reward(self,achieved_goal, goal, info):
-        d = self.goal_distance(achieved_goal,goal)
-        return -(d!=0).astype(np.float32)
+    def compute_reward(self, achieved_goal, goal, info):
+        d = self.goal_distance(achieved_goal, goal)
+        return -(d != 0).astype(np.float32)
 
-    def goal_distance(self,goal_a, goal_b):
+    def goal_distance(self, goal_a, goal_b):
         assert goal_a.shape == goal_b.shape
         return np.linalg.norm(goal_a - goal_b, axis=-1)

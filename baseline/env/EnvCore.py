@@ -1,10 +1,6 @@
-import gym
-from gym_simple_minigrid.minigrid import SimpleMiniGridEnv
-from gym import spaces
-
-from gym.envs.registration import register
-
 import numpy as np
+from gym import spaces
+from gym_simple_minigrid.minigrid import SimpleMiniGridEnv
 
 
 class ModifiedMiniGridEnv(SimpleMiniGridEnv):
@@ -43,7 +39,7 @@ class ModifiedMiniGridEnv(SimpleMiniGridEnv):
             'observation': spaces.Box(
                 low=0,
                 high=255,
-                shape=(2+4,),
+                shape=(2 + 4,),
                 dtype=np.int
             )
         })
@@ -66,6 +62,7 @@ class ModifiedMiniGridEnv(SimpleMiniGridEnv):
         # Initialize the environment
         self.agent_pos = self.agent_dir = self.goal_pos = self.step_count = self.grid = self.goals = None
         self.reset()
+
     '''
     def reset_state_goal(self):
         agent_dir = self.np_random.randint(4)

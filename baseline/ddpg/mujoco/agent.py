@@ -1,14 +1,13 @@
 import numpy as np
-
-from baseline.ddpg.mujoco.models import Actor, Critic
-from torch import from_numpy, device
 import torch
 from mpi4py import MPI
+from torch import from_numpy, device
 from torch.optim import Adam
 
 from baseline.common.memory import Memory
 from baseline.common.memory_ebp import MemoryEnergy
 from baseline.common.normalizer import Normalizer
+from baseline.ddpg.mujoco.models import Actor, Critic
 
 ACTOR_LOSS_L2 = 1  # L2 regularization
 

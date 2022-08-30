@@ -1,22 +1,25 @@
-import sys
-from copy import deepcopy
 import json
+from copy import deepcopy
+
 import numpy as np
+import torch
 from gym import envs
 from torch import device
-import torch
-from baseline.ddpg.mujoco.agent import Agent as Agent_Mujoco
+
 from baseline.ddpg.minigrid.agent import Agent as Agent_Minigrid
+from baseline.ddpg.mujoco.agent import Agent as Agent_Mujoco
+
 
 def read_config(path):
     with open('{}/config.json'.format(path), 'r') as f:
         config = json.load(f)
     return config
 
+
 if __name__ == '__main__':
     folder_path = '../../data/08-12_23:05-ModifiedEmptyRoomEnv-v0'
     config = read_config(folder_path)
-    Env_type=config['Env_type']
+    Env_type = config['Env_type']
     Env_name = config['Env_name']
     MAX_EPISODES = 100
 
@@ -27,13 +30,13 @@ if __name__ == '__main__':
         n_action = 1
         actions_num = 3
         n_goal = env.observation_space.spaces['desired_goal'].shape[0]
-        agent = Agent_Minigrid(n_state, n_action, n_goal, actions_num, deepcopy(env),config)
+        agent = Agent_Minigrid(n_state, n_action, n_goal, actions_num, deepcopy(env), config)
     elif Env_type == 'mujoco':
         n_state = env.observation_space.spaces['observation'].shape
         n_action = env.action_space.shape[0]
         n_goal = env.observation_space.spaces['desired_goal'].shape[0]
         bound_action = [env.action_space.low[0], env.action_space.high[0]]
-        agent = Agent_Mujoco(n_state, n_action, n_goal, bound_action, deepcopy(env),config)
+        agent = Agent_Mujoco(n_state, n_action, n_goal, bound_action, deepcopy(env), config)
     else:
         print('wrong env type')
 
