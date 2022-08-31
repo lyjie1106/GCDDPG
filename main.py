@@ -8,7 +8,7 @@ from baseline.ddpg.train import launch
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(BASE_DIR)
-sys.path.append('/home/lujie/GCRL/PycharmProjects/GCRL-baseline')
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 
 def get_args():

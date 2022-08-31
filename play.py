@@ -1,14 +1,23 @@
 import json
+import sys
 from copy import deepcopy
 
 import numpy as np
 import torch
 from gym import envs
+from matplotlib import pyplot as plt
 from torch import device
+import argparse
 
 from baseline.ddpg.minigrid.agent import Agent as Agent_Minigrid
 from baseline.ddpg.mujoco.agent import Agent as Agent_Mujoco
 
+def get_args():
+    parser = argparse.ArgumentParser(prog='Deep Deterministic Policy Gradient-play demo',
+                                     description='DDPG with different relabeling algorithm')
+    parser.add_argument('--model', dest='model_folder_path', required=True, help='File path of model folder')
+    args = parser.parse_args()
+    return args
 
 def read_config(path):
     with open('{}/config.json'.format(path), 'r') as f:
@@ -17,7 +26,8 @@ def read_config(path):
 
 
 if __name__ == '__main__':
-    folder_path = '../../data/08-12_23:05-ModifiedEmptyRoomEnv-v0'
+    args = get_args()
+    folder_path = args.model_folder_path
     config = read_config(folder_path)
     Env_type = config['Env_type']
     Env_name = config['Env_name']
@@ -64,11 +74,13 @@ if __name__ == '__main__':
                 next_env_dict, reward, done, info = env.step(actions)
                 state = next_env_dict['observation'].copy()
                 desired_goal = next_env_dict['desired_goal'].copy()
-            '''
-            plt.imshow(env.render())
-            plt.pause(0.1)
-            plt.ioff()
-            '''
+
+            if Env_type == 'minigrid':
+                plt.imshow(env.render())
+                plt.pause(0.1)
+                plt.ioff()
+            else:
+                env.render()
             if info['is_success'] == 1:
                 success += 1
                 break
