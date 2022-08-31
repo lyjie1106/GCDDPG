@@ -21,9 +21,10 @@ The Algorithm is for Gym-Robotics' Fetch environments and a customised gym-simpl
 ```shell
 # train
 mpirun -np $(nproc) python3 -u main.py --config ./path/to/config/file
-
-# tensorboard data
+Example: mpirun -np $(nproc) python3 -u main.py --config ./baseline/config/test.config
+# tensorboard data read
 tensorboard --logdir=./path/to/the/log/folder --port 8123
-
+Example: tensorboard --logdir=./data/experiment-1/FetchPickAndPlace/HER/08-16_03:13-FetchPickAndPlace-v1/log --port 8123
 # play
 python3 play.py --model ./path/to/model/folder
+Example: python3 play.py --model ./data/experiment-1/FetchPickAndPlace/HER/08-16_03:13-FetchPickAndPlace-v1
